@@ -1,0 +1,44 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Secrets / environment ----
+.env
+.env.*
+*.local
+
+# ---- Large local data (GeoTIFF / raster) ----
+backend/data/
+*.tif
+*.tiff
+
+# ---- Editor / tooling ----
+.trae/
+.trae-html-share-packages/
+.screenshots/
+.vscode/
+.idea/
+
+# ---- Archives ----
+*.rar
+*.zip
+*.7z
+
+# ---- Vercel ----
+.vercel
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini

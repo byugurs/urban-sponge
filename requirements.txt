@@ -1,0 +1,13 @@
+# UrbanSponge - dependencies for the Vercel (serverless) deployment.
+#
+# rasterio is intentionally omitted: it requires GDAL and cannot be built on
+# Vercel. The application imports rasterio lazily, so it runs without it and
+# falls back to the calibrated local risk data.
+#
+# For a full local install (with rasterio / GeoTIFF support) use
+# backend/requirements.txt instead.
+fastapi
+uvicorn
+numpy
+shapely
+python-multipart

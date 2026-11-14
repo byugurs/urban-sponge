@@ -1,0 +1,7 @@
+# UrbanSponge - Backend bagimliliklari
+fastapi
+uvicorn[standard]
+numpy
+shapely
+rasterio
+python-multipart

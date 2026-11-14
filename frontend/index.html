@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UrbanSponge | Urban Flood &amp; Sponge Area Simulation</title>
+
+  <!-- Leaflet & Leaflet.draw -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Full-screen map -->
+  <div id="map"></div>
+
+  <!-- Top bar -->
+  <header class="topbar glass">
+    <div class="brand">
+      <div class="logo">US</div>
+      <div class="brand-text">
+        <h1>UrbanSponge</h1>
+        <p>Urban Flood &amp; Sponge Area Simulation · Batman Pilot Region</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="status" id="apiStatus">
+        <span class="dot"></span> Checking connection…
+      </span>
+      <button id="btnMethodology" class="btn ghost">NASA Data Sources &amp; Methodology</button>
+    </div>
+  </header>
+
+  <!-- Left control panel -->
+  <aside class="panel panel-left glass">
+    <div class="panel-head">
+      <h2>Simulation Controls</h2>
+    </div>
+    <div class="panel-body">
+      <section class="control-block">
+        <div class="control-label">
+          <span>Rainfall Intensity</span>
+          <span class="value-chip" id="rainfallValue">60 mm/h</span>
+        </div>
+        <input type="range" id="rainfallSlider" min="20" max="120" step="5" value="60" />
+        <div class="range-scale">
+          <span>20 mm/h · Downpour</span>
+          <span>120 mm/h · Extreme Event</span>
+        </div>
+      </section>
+
+      <section class="control-block">
+        <div class="control-label"><span>Sponge Intervention Type</span></div>
+        <div class="sponge-cards" id="spongeCards">
+          <button class="sponge-card is-active" data-type="yagmur_bahcesi" data-cn="45">
+            <span class="card-title">Rain Garden (Bioretention)</span>
+            <span class="card-meta">CN 45 · ₺1,250/m²</span>
+          </button>
+          <button class="sponge-card" data-type="gecirgen_asfalt" data-cn="65">
+            <span class="card-title">Permeable Asphalt</span>
+            <span class="card-meta">CN 65 · ₺950/m²</span>
+          </button>
+          <button class="sponge-card" data-type="kent_ormani" data-cn="55">
+            <span class="card-title">Green Roof / Urban Forest</span>
+            <span class="card-meta">CN 55 · ₺400/m²</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="control-block actions">
+        <button id="btnDraw" class="btn primary">Draw Sponge Area on Map</button>
+        <button id="btnClear" class="btn ghost">Clear Drawing</button>
+      </section>
+
+      <p class="hint">Tip: Draw a polygon on an empty area of the map. Click the red/orange risk polygons to view NASA Landsat imperviousness and DEM slope data.</p>
+    </div>
+  </aside>
+
+  <!-- Right results panel -->
+  <aside class="panel panel-right glass">
+    <div class="panel-head">
+      <h2>Live Impact Cards</h2>
+    </div>
+    <div class="panel-body">
+      <div class="placeholder" id="resultPlaceholder">
+        Draw an area on the map to see the results.
+      </div>
+
+      <div class="results hidden" id="results">
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-value" id="statRetained">0</span>
+            <span class="stat-unit">m³</span>
+            <span class="stat-label">Retained Water Volume</span>
+          </div>
+          <div class="stat highlight">
+            <span class="stat-value" id="statReduction">0</span>
+            <span class="stat-unit">%</span>
+            <span class="stat-label">Flood Risk Reduction</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="statHouseholds">0</span>
+            <span class="stat-unit">households</span>
+            <span class="stat-label">Households Protected</span>
+          </div>
+        </div>
+
+        <div class="chart-block">
+          <h3>Flood Volume: Before vs. After Intervention</h3>
+          <div class="bar-chart">
+            <div class="bar-wrap">
+              <div class="bar-track">
+                <div class="bar before" id="barBefore"></div>
+              </div>
+              <span class="bar-label">Before</span>
+              <span class="bar-value" id="barBeforeValue">0 m³</span>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-track">
+                <div class="bar after" id="barAfter"></div>
+              </div>
+              <span class="bar-label">After</span>
+              <span class="bar-value" id="barAfterValue">0 m³</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-list">
+          <div><span>Polygon Area</span><strong id="detArea">-</strong></div>
+          <div><span>Rainfall</span><strong id="detRain">-</strong></div>
+          <div><span>Existing Surface (CN)</span><strong id="detBeforeCN">-</strong></div>
+          <div><span>Intervention (CN)</span><strong id="detAfterCN">-</strong></div>
+          <div><span>Water Infiltrated into Soil</span><strong id="detInfiltrated">-</strong></div>
+          <div><span>Estimated Cost</span><strong id="detCost">-</strong></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- NASA methodology modal -->
+  <div class="modal-overlay hidden" id="methodologyModal">
+    <div class="modal glass">
+      <div class="modal-head">
+        <h2>NASA Data Sources &amp; Methodology</h2>
+        <button class="modal-close" id="btnCloseModal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">
+          UrbanSponge combines NASA and open satellite datasets with the <strong>SCS Curve Number</strong>
+          hydrological model to analyze urban flood risk and the impact of sponge interventions.
+        </p>
+
+        <div class="dataset-grid">
+          <article class="dataset-card">
+            <div class="dataset-head">
+              <span class="dataset-icon">DEM</span>
+              <div>
+                <h4>NASADEM</h4>
+                <span class="dataset-agency">NASA JPL · Earthdata</span>
+              </div>
+            </div>
+            <dl class="dataset-spec">
+              <div><dt>Resolution</dt><dd>30 m (1 arc-second)</dd></div>
+              <div><dt>Coverage</dt><dd>60°N – 56°S</dd></div>
+              <div><dt>Vertical Accuracy</dt><dd>±6 m RMSE</dd></div>
+              <div><dt>Use</dt><dd>Slope analysis, depression / flood-prone area detection</dd></div>
+            </dl>
+          </article>
+
+          <article class="dataset-card">
+            <div class="dataset-head">
+              <span class="dataset-icon">OLI</span>
+              <div>
+                <h4>Landsat 8/9 OLI</h4>
+                <span class="dataset-agency">NASA / USGS</span>
+              </div>
+            </div>
+            <dl class="dataset-spec">
+              <div><dt>Bands Used</dt><dd>B4 Red (0.64–0.67 µm) · B5 NIR (0.85–0.88 µm)</dd></div>
+              <div><dt>Resolution</dt><dd>30 m</dd></div>
+              <div><dt>Revisit Time</dt><dd>16 days (L8 + L9 → 8 days)</dd></div>
+              <div><dt>Derived Data</dt><dd>NDVI · built-up / impervious area mask</dd></div>
+            </dl>
+          </article>
+
+          <article class="dataset-card">
+            <div class="dataset-head">
+              <span class="dataset-icon">GPM</span>
+              <div>
+                <h4>GPM IMERG</h4>
+                <span class="dataset-agency">NASA / JAXA</span>
+              </div>
+            </div>
+            <dl class="dataset-spec">
+              <div><dt>Resolution</dt><dd>0.1° (~11 km) · 30 minutes</dd></div>
+              <div><dt>Coverage</dt><dd>60°N – 60°S</dd></div>
+              <div><dt>Derived Data</dt><dd>Rainfall intensity (mm/h)</dd></div>
+              <div><dt>Use</dt><dd>Simulation rainfall input (P)</dd></div>
+            </dl>
+          </article>
+        </div>
+
+        <h3>NDVI → Impervious Area Detection</h3>
+        <div class="formula">NDVI = (NIR − Red) / (NIR + Red)</div>
+        <p>
+          Pixels with <strong>NDVI &lt; 0.2</strong> computed from Landsat 8/9 Band 4 (Red) and Band 5 (NIR)
+          are masked as <strong>“Built-up / Impervious Area”</strong> and converted into GeoJSON polygons.
+          This is done by the <code>backend/process_real_nasa.py</code> script from local GeoTIFF files
+          or from real Landsat scenes via the Planetary Computer STAC API.
+        </p>
+
+        <h3>SCS Curve Number Model</h3>
+        <div class="formula">S = 25400 / CN − 254   (mm)</div>
+        <div class="formula">Q = (P − 0.2·S)² / (P + 0.8·S)   ;  Q = 0 if P ≤ 0.2·S</div>
+        <p>S: maximum potential retention, P: rainfall depth (mm), Q: surface runoff depth (mm).</p>
+        <p>Runoff volume: <strong>V = (Q / 1000) × Area (m²)</strong> → m³.</p>
+
+        <h3>Standard CN Values</h3>
+        <table class="cn-table">
+          <tr><td>Concrete / Asphalt</td><td>98</td></tr>
+          <tr><td>Dense Urbanization</td><td>92</td></tr>
+          <tr><td>Standard Park / Lawn</td><td>74</td></tr>
+          <tr><td>Permeable Asphalt</td><td>65</td></tr>
+          <tr><td>Green Roof / Urban Forest</td><td>55</td></tr>
+          <tr><td>Rain Garden</td><td>45</td></tr>
+        </table>
+
+        <p class="modal-note">100 m³ of retained water is accepted as the protection of 1 ground-floor household from flood risk.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
