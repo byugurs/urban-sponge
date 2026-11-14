@@ -35,6 +35,10 @@ backend/data/
 *.zip
 *.7z
 
+# ---- Presentation / report material (kept local, not published) ----
+UrbanSponge_Sunum_Raporu.html
+UrbanSponge_Sunum_Slaytlari.html
+
 # ---- Vercel ----
 .vercel
 
