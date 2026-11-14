@@ -27,10 +27,3 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
 Then open http://127.0.0.1:8000
-
-## Deploy
-
-Deployed as a single Vercel Function. `app.py` is the entrypoint and the root
-`requirements.txt` holds the deployment dependencies. Rasterio is omitted because
-it requires GDAL and cannot build on Vercel; the app imports it lazily and falls
-back to calibrated local risk data.
